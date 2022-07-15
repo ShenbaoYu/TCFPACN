@@ -1,0 +1,10 @@
+power_strength:10
+power_jumping:4
+power_stamina:8
+defending_standing_tackle:10
+mentality_aggression:4
+defending_sliding_tackle:10
+movement_sprint_speed:8
+defending_marking:6
+movement_acceleration:6
+mentality_interceptions:10

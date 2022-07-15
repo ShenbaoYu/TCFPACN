@@ -1,0 +1,10 @@
+movement_agility:8
+movement_acceleration:8
+movement_balance:6
+movement_sprint_speed:8
+power_stamina:6
+skill_ball_control:10
+skill_dribbling:10
+attacking_short_passing:10
+power_jumping:4
+power_shot_power:6
