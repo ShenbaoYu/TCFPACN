@@ -1,0 +1,10 @@
+explosive_power:8
+speed:10
+stamina:6
+kicking_power:6
+ball_control:10
+dribbling:8
+low_pass:6
+physical_contact:4
+body_control:8
+attacking_prowess:10

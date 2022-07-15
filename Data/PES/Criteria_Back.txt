@@ -1,0 +1,10 @@
+physical_contact:10
+stamina:6
+jump:10
+speed:4
+ball_winning:10
+defensive_prowess:10
+explosive_power:6
+header:10
+kicking_power:6
+low_pass:6
