@@ -1,77 +1,86 @@
 # coding=utf-8
 
 """
-build the team (Forward/Midfielder + Backwards) 
-based on greedy algorithm in the context of players' social network
+Team Building (Forward/Midfielder + Defenders) Based on Greedy Algorithm and Player Social Network
 
-A node in the graph denotes a football players with the personal ability
-edge denotes the similarity between two players based on the club and nationality
+This script constructs a team of football players using a greedy algorithm, leveraging 
+a network representing player relationships and abilities. The algorithm aims to create 
+a balanced team with strong individual skills and good synergy between players.
+
+Key Concepts:
+
+* Player Graph: A network where nodes represent players and edges represent similarity 
+   between players (based on club, nationality, etc.).
+* Greedy Algorithm: An iterative approach where the best available player is added 
+   to the team at each step, considering both individual quality and fit within 
+   the existing team.
+* Player Abilities: Various skills (e.g., passing, shooting, defending) that 
+   contribute to a player's overall value.
+* Team Balance: Ensuring a mix of player positions (e.g., defenders, midfielders, 
+   forwards) to form a complete team.
 """
 
 import os, sys
-
-from regex import I
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.dirname(os.getcwd()))
 sys.path.append(BASE_DIR)
+sys.path.append('TCFPACN')  # Ensure the custom module is accessible
 
 from FBTP import players, modules
-import re
+import re  # For regular expression matching of positions
 import math
 import numpy as np
 
 
-
-
 def players_graph_construction(sim, abi_avg, abis_name, abi_name_id, pos, rating):
     """
-    FUNCTION: Players' Graph
+    Constructs a graph representation of football players based on their similarities and abilities.
+
+    Args:
+        sim: A similarity matrix representing pairwise similarity between players.
+        abi_avg: A dictionary mapping player IDs to their average ability scores.
+        abis_name: A dictionary mapping player IDs to their ability names.
+        abi_name_id: A dictionary mapping ability names to unique IDs.
+        pos: A dictionary mapping player IDs to their positions.
+        rating: A dictionary mapping player IDs to their overall ratings.
+
+    Returns:
+        A players.Graph object representing the constructed graph.
     """
 
-    # abilities_name = modules.player_abilities_name
-    # ability_name_id = modules.ability_name_id
-    # player_position = modules.player_position
-    # player_rating = modules.player_rating
-
-    # get the major abilities
-    ability_major = []
+    ability_major = []  # List to store the most important abilities
     c = 1
     tmp_sorted = sorted(abi_avg.items(), key=lambda x: x[1], reverse=True)
     for abl in tmp_sorted:
-        if c <= 10:
+        if c <= 10:  # Take top 10 abilities
             ability_major.append(abl[0])
             c += 1
-    players_graph = players.Graph()
 
-    # construct the players' network based on similarity
-    # O(|node|^2)
+    players_graph = players.Graph()  # Initialize the graph
+
+    # Iterate over players to add nodes and edges to the graph
     for i in range(0, sim.shape[0]-1):
-
-        if not players_graph.__contains__(i):
+        if not players_graph.__contains__(i):  # Add node if not already present
             players_graph.add_vertex(i)
-
-        # add the player's abilities
+            
+        # Add relevant player abilities to the vertex
         for name, abilities in abis_name.items():
             if name in ability_major and i in abilities:
                 players_graph.vertexList[i].abilities[abi_name_id[name]] = abilities[i]
 
-        # find the neighbors
+        # Find neighbors (players with non-zero similarity) and add edges weighted by similarity
         neighbors = np.argwhere(sim[i] != 0).tolist()
-        neighbors.remove([i])
+        neighbors.remove([i])  # Remove self-connection
         for ne in neighbors:
             players_graph.add_edge(i, ne[0], sim[i][ne[0]])
-        # for j in range(0, sim.shape[0]-1):
-        #     if i != j and sim[i][j] > 0:
-        #         players_graph.add_edge(i, j, sim[i][j])
-
-        # add the position
+        
+        # Set player's position and calculated salary
         players_graph.vertexList[i].position = pos[i]
-
-        # calculate the salary
         players_graph.vertexList[i].salary = cal_player_salary(i, rating)
 
     return players_graph
 
 
+# Calculate a player's salary based on his rating, using an exponential formula.
 def cal_player_salary(i, player_rating):
     eta = 0.0006375
     theta = 0.1029
@@ -85,9 +94,9 @@ def player_opt_subgraph(player_no_id, pg, criteria, abi_name_id, alpha, beta, ne
     STEP 1:
         find a centre player maximize balance= alpha*φ(i)+(1-alpha)*s(i)
     STEP 2:
-        find other football players
+        Use the <select_opt_players> function to iteratively select players that maximize the team's skill mix, density in the graph and homogeneity, respecting position restrictions and number of players per position.
     STEP 3:
-        repeat STEP 2 until find K players
+        Returns the list of selected players (opt_players).
 
     """
 
@@ -102,6 +111,9 @@ def player_opt_subgraph(player_no_id, pg, criteria, abi_name_id, alpha, beta, ne
 
 
 def select_star(player_num_id, vertex_list, criteria, abi_name_id, alpha):
+"""
+Select the core player based on skill and grade.
+"""
     star = None
     star_score = 0
 
@@ -146,7 +158,11 @@ def select_star(player_num_id, vertex_list, criteria, abi_name_id, alpha):
 
     return star
 
+
 def cal_player_ability(abilities, criteria, abi_name_id):
+"""
+Calculates a player's ability by weighting their skills individual assessment criteria.
+"""
     player_ability = 0
 
     for abi_id, score in abilities.items():
@@ -157,6 +173,9 @@ def cal_player_ability(abilities, criteria, abi_name_id):
 
 
 def cal_player_degree(player_co):
+"""
+Calculates a player's degree (number of connections in the graph).
+"""
     degree = len(player_co)
     return degree
 
@@ -164,6 +183,7 @@ def cal_player_degree(player_co):
 def select_opt_players(player_num_id, vertex_list, criteria, ability_name_id, alpha, beta, star, network_name, datasource, k=1):
     """
     FUNCTION: Find the players
+    Selects team players iteratively.
     """
     # the number of players in each position
     if datasource == 'PES':
@@ -269,6 +289,9 @@ def update_position(position_num, player_position, datasource):
 
 
 def position_trans(player_position, datasource):
+"""
+Translates a player's position to a standard format
+"""
     if datasource == 'PES':
         if re.match(r".+MF", player_position):
             player_position = "*MF"
@@ -292,6 +315,9 @@ def position_trans(player_position, datasource):
 
 
 def cal_homogeneity(vertex_list, neighbor, opt_players):
+"""
+Calculate the homogeneity (or heterogeneity, depending on the type of network) of a set of players using the Gini index.
+"""
 
     homo = 0
     com_players = list()
@@ -349,6 +375,9 @@ def normalize(dict_type):
 
 
 def normalize_min_max(dict_type):
+"""
+Normalizes the values of a dictionary between 0 and 1.
+"""
 
     value_min = sys.maxsize
     value_max = 0
